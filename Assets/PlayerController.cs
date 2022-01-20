@@ -7,25 +7,46 @@ using UnityEngine;
 
 public class PlayerController : NetworkBehaviour
 {
-    public List<GameObject> skins = new List<GameObject>();
-    public int current = 0;
+    [Serializable]
+    public struct PlayerStats
+    {
+        public GameObject skin;
+        public Animator animator;
+        public int damage;
+        public int health;
+    }
+
+    //Make the private field of our PlayerStats struct visible in the Inspector
+    //by applying [SerializeField] attribute to it
+    [SerializeField]
+    public PlayerStats[] skins;
+    [SyncVar] public int currentHealth;
+    [SyncVar] public int current = 0;
+    public EnemyController enemy;
     private Camera mainCamera;
+
+    public override void OnStartClient()
+    {
+        FindObjectOfType<RoomManager>().AddPlayer(netId);
+    }
 
     void Start()
     {
+        currentHealth = skins[current].health;
         mainCamera = Camera.main;
-
-        if (current >= skins.Count)
+        enemy = FindObjectOfType<EnemyController>();
+        if (current >= skins.Length)
         {
             current = 0;
         }
 
-        foreach (GameObject skin in skins)
+        foreach (PlayerStats skin in skins)
         {
-            skin.SetActive(false);
+            skin.skin.SetActive(false);
         }
 
-        skins[current].SetActive(true);
+        skins[current].skin.SetActive(true);
+        
     }
 
     // Update is called once per frame
@@ -33,17 +54,13 @@ public class PlayerController : NetworkBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            RaycastHit2D hit;
-            Vector2 tmp_now_pos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-            hit = Physics2D.Raycast(tmp_now_pos, Vector2.one * 0.01f, 0.01f);
-            if (hit)
-            {
-                GameObject hitObj = hit.collider.gameObject;
-                // if (hitObj.GetComponent<Character>())
-                // {
-                //     hitObj.GetComponent<Character>().Click();
-                // }
-            }
+            Attack();
         }
+    }
+
+    void Attack()
+    {
+        skins[current].animator.SetTrigger("Attack");
+        enemy.MinusHealth(skins[current].damage);
     }
 }
