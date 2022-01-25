@@ -1,4 +1,6 @@
-﻿namespace TurnTheGameOn.Timer
+﻿using Mirror;
+
+namespace TurnTheGameOn.Timer
 {
     using TMPro;
     using UnityEngine;
@@ -6,7 +8,7 @@
     using UnityEngine.Events;
     using System;
 
-    public class Timer : MonoBehaviour
+    public class Timer : NetworkBehaviour
     {
         #region Variables
         [Tooltip("Controls if the timer is Counting or Disabled.")]
@@ -14,12 +16,12 @@
         [Tooltip("Controls if the timer will count-up, count-down, or count-up infinitely.")]
         public TimerType timerType;
         [Tooltip("Time the timer will start from.")]
-        public double startTime;
+        [SyncVar]public double startTime;
         [Tooltip("Time the timer will stop at.")]
         public double finishTime;
         [Tooltip("Rate at which the timer adds or subtracts time.")]
         [Range(0, 10000)]
-        public float timerSpeed = 1;
+        [SyncVar]public float timerSpeed = 1;
         [Tooltip("Timer will auto restart when complete.")]
         public bool loop;
         [Tooltip("Timer will run as a clock and output system time.")]
@@ -47,7 +49,7 @@
         public int second;
         public int millisecond;
         public string formattedString;
-        private double gameTime;
+        [SyncVar] private double gameTime;
         private string ms, s, m, d, h;
         #endregion
 

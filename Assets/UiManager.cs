@@ -1,28 +1,51 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Mirror;
 using TMPro;
+using TurnTheGameOn.Timer;
 using UnityEngine;
 
-public class UiManager : NetworkBehaviour
+public class UiManager : MonoBehaviour
 {
-    public TMP_Text Timer;
+    public Timer timerAnswer;
     public GameObject BasePanel;
-    [Header("Simple")]
-    public GameObject SimplePanel;
+    [Header("Simple")] public GameObject SimplePanel;
     public TMP_Text QuestionSimple;
     public TMP_Text a1;
     public TMP_Text a2;
     public TMP_Text a3;
     public TMP_Text a4;
-    void Start()
+    private GameManager _gameManager;
+    [HideInInspector] public List<int> buttons = new List<int>() {0, 1, 2, 3};
+
+    private void Start()
     {
-        
+        _gameManager = FindObjectOfType<GameManager>();
+    }
+    
+
+    public void ShowBase()
+    {
+        BasePanel.SetActive(true);
+    }
+    public void ShowSimplePanel()
+    {
+        SimplePanel.SetActive(true);
+    }
+    public void ShowQuestion()
+    {
+        foreach (PlayerController player in FindObjectsOfType<PlayerController>())
+        {
+            print(1);
+            player.ShowQuestion();
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    public void CloseAll()
     {
-        
+        BasePanel.SetActive(false);
+        _gameManager.StartTimer();
     }
 }
