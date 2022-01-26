@@ -7,7 +7,6 @@ public class ReverseSee : MonoBehaviour
 {
     private void OnTriggerEnter2D(Collider2D other)
     {
-        print("player");
         if (other.tag == "Player")
         {
             

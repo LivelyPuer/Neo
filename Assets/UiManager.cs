@@ -38,7 +38,6 @@ public class UiManager : MonoBehaviour
     {
         foreach (PlayerController player in FindObjectsOfType<PlayerController>())
         {
-            print(1);
             player.ShowQuestion();
         }
     }

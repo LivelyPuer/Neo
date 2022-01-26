@@ -12,46 +12,51 @@ public class PlayerController : NetworkBehaviour
     [Serializable]
     public struct PlayerStats
     {
-        public GameObject skin;
-        public Animator animator;
-        public int damage;
-        public int health;
+        public Sprite skin;
+        public Sprite skinDead;
     }
 
     //Make the private field of our PlayerStats struct visible in the Inspector
     //by applying [SerializeField] attribute to it
     [SerializeField] public PlayerStats[] skins;
-
-    [SyncVar] public bool answered;
-    [SyncVar] public int currentHealth;
+    [SyncVar] public bool isRight;
+    [SyncVar] public bool isDead;
+    [SyncVar] public int currentHealth = 30;
     [SyncVar] public int current = 0;
+    [SyncVar] public int damage = 50;
+    [SyncVar] public int health = 30;
     public EnemyController enemy;
     private Camera mainCamera;
     public ParticleSystem right;
     public ParticleSystem left;
-
     public TMP_Text Name;
     private DataManager _dataManager;
     private UiManager _uiManager;
     private GameManager _gameManager;
-
+    private Health _health;
+    public SpriteRenderer skin;
     public override void OnStartClient()
     {
-        FindObjectOfType<RoomManager>().AddPlayer(netId);
-        
+        if (isLocalPlayer)
+        {
+            FindObjectOfType<GameManager>().CmdAddPlayer(netId);
+            FindObjectOfType<GameManager>().localPlayerID = netId;
+        }
     }
 
     void Start()
     {
         _dataManager = GetComponent<DataManager>();
+        _health = GetComponent<Health>();
         _uiManager = FindObjectOfType<UiManager>();
         _gameManager = FindObjectOfType<GameManager>();
+
         if (isLocalPlayer)
         {
             Name.text = "YOU";
         }
-        
-        currentHealth = skins[current].health;
+
+        currentHealth = health;
         mainCamera = Camera.main;
         enemy = FindObjectOfType<EnemyController>();
         if (current >= skins.Length)
@@ -59,83 +64,139 @@ public class PlayerController : NetworkBehaviour
             current = 0;
         }
 
-        foreach (PlayerStats skin in skins)
-        {
-            skin.skin.SetActive(false);
-        }
-
-        skins[current].skin.SetActive(true);
+        skin.sprite = skins[current].skin;
     }
+
     public void PlayParticle()
     {
-        if (_gameManager.playerRightID[netId])
+        if (!isDead)
         {
-            right.Play();
-        }
-        else
-        {
-            left.Play();
+            if (isRight)
+            {
+                right.Play();
+                Attack();
+            }
+            else
+            {
+                MinusHealth(enemy.damage);
+                left.Play();
+                if (currentHealth <= 0)
+                {
+                    skin.sprite = skins[current].skinDead;
+                    isDead = true;    
+                }
+                
+            }
         }
     }
+
 
     void Attack()
     {
-        skins[current].animator.SetTrigger("Attack");
-        enemy.MinusHealth(skins[current].damage);
+        if (hasAuthority)
+        {
+            print("Has " + hasAuthority);
+            enemy.CmdChangeHealth(damage);
+        }
     }
+
+    public void MinusHealth(int count)
+    {
+        if (hasAuthority) //проверяем, есть ли у нас права изменять этот объект
+        {
+            if (isServer) //если мы являемся сервером, то переходим к непосредственному изменению переменной
+                ChangeHealthValue(count);
+            else
+                CmdChangeHealth(count);
+        }
+    }
+
+    [Server] //обозначаем, что этот метод будет вызываться и выполняться только на сервере
+    public void ChangeHealthValue(int damage)
+    {
+        currentHealth -= damage;
+    }
+
+    [Command] //обозначаем, что этот метод должен будет выполняться на сервере по запросу клиента
+    public void CmdChangeHealth(int damage) //обязательно ставим Cmd в начале названия метода
+    {
+        ChangeHealthValue(damage); //переходим к непосредственному изменению переменной
+    }
+
 
     public void CheckAnswer(string answer)
     {
-        _gameManager.SetDict(netId, _dataManager.CheckAnswer(answer));
+        if (hasAuthority) //проверяем, есть ли у нас права изменять этот объект
+        {
+            if (isServer) //если мы являемся сервером, то переходим к непосредственному изменению переменной
+                ChangeRightValue(_dataManager.CheckAnswer(answer));
+            else
+                CmdChangeRight(_dataManager.CheckAnswer(answer));
+        }
+    }
+
+    [Server] //обозначаем, что этот метод будет вызываться и выполняться только на сервере
+    public void ChangeRightValue(bool newValue)
+    {
+        isRight = newValue;
+    }
+
+    [Command] //обозначаем, что этот метод должен будет выполняться на сервере по запросу клиента
+    public void CmdChangeRight(bool newValue) //обязательно ставим Cmd в начале названия метода
+    {
+        ChangeRightValue(newValue); //переходим к непосредственному изменению переменной
     }
 
     public void ShowQuestion()
     {
-        print(name + " " + isLocalPlayer);
-        if (isLocalPlayer)
+        if (!isDead)
         {
-            _gameManager.SetDict(netId, false);
-            print("Call");
-            _dataManager.GenerateNewQuestion();
-            Question q = _dataManager.GetCurQuestion();
-            print(q.title + "; " + q.right + "; " + q.a2 + "; " + q.a3 + "; " + q.a4);
-            _uiManager.ShowBase();
-            print(_uiManager.BasePanel.activeSelf);
-            switch (q.typeQuestion)
+            if (hasAuthority) //проверяем, есть ли у нас права изменять этот объект
             {
-                case Question.Type.Simple:
-                    _uiManager.ShowSimplePanel();
-                    _uiManager.QuestionSimple.text = q.title;
+                if (isServer) //если мы являемся сервером, то переходим к непосредственному изменению переменной
+                    ChangeRightValue(false);
+                else
+                    CmdChangeRight(false);
+                _dataManager.GenerateNewQuestion();
+                Question q = _dataManager.GetCurQuestion();
+                print(q.title + "; " + q.right + "; " + q.a2 + "; " + q.a3 + "; " + q.a4);
+                _uiManager.ShowBase();
+                switch (q.typeQuestion)
+                {
+                    case Question.Type.Simple:
+                        _uiManager.ShowSimplePanel();
+                        _uiManager.QuestionSimple.text = q.title;
 
-                    List<string> answers = new List<string>() {q.right, q.a2, q.a3, q.a4};
-                    System.Random rnd = new System.Random();
-                    IOrderedEnumerable<int> randomized = _uiManager.buttons.OrderBy(item => rnd.Next());
-                    int i = 0;
-                    foreach (int index in randomized)
-                    {
-                        switch (i)
+                        List<string> answers = new List<string>() {q.right, q.a2, q.a3, q.a4};
+                        System.Random rnd = new System.Random();
+                        IOrderedEnumerable<int> randomized = _uiManager.buttons.OrderBy(item => rnd.Next());
+                        int i = 0;
+                        foreach (int index in randomized)
                         {
-                            case 0:
-                                _uiManager.a1.text = answers[index];
-                                break;
-                            case 1:
-                                _uiManager.a2.text = answers[index];
-                                break;
-                            case 2:
-                                _uiManager.a3.text = answers[index];
-                                break;
-                            case 3:
-                                _uiManager.a4.text = answers[index];
-                                break;
+                            switch (i)
+                            {
+                                case 0:
+                                    _uiManager.a1.text = answers[index];
+                                    break;
+                                case 1:
+                                    _uiManager.a2.text = answers[index];
+                                    break;
+                                case 2:
+                                    _uiManager.a3.text = answers[index];
+                                    break;
+                                case 3:
+                                    _uiManager.a4.text = answers[index];
+                                    break;
+                            }
+
+                            i++;
                         }
 
-                        i++;
-                    }
+                        break;
+                }
 
-                    break;
+                _uiManager.timerAnswer.RestartTimer();
             }
-
-            _uiManager.timerAnswer.RestartTimer();
         }
     }
 }

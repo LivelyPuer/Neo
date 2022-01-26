@@ -21,9 +21,10 @@ public class DataManager : MonoBehaviour
         print(data[0]["title"]);
     }
 
-    public void GenerateNewQuestion()
+    public Question GenerateNewQuestion()
     {
         currentQuestion = GetQuestions();
+        return currentQuestion;
     }
 
     public void OpenGenerate()

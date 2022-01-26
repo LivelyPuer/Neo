@@ -6,18 +6,30 @@ using UnityEngine.UI;
 public class Health : MonoBehaviour
 {
     private PlayerController _playerController;
+    private EnemyController _enemyController;
     public Slider slider;
     public Gradient healthGradient;
     public Image fill;
+    public bool isEnemy;
+
     void Start()
     {
-        _playerController = GetComponent<PlayerController>();
-        SetMaxHealth(_playerController.skins[_playerController.current].health);
+        if (tag == "Enemy")
+        {
+            isEnemy = true;
+            _enemyController = GetComponent<EnemyController>();
+            SetMaxHealth(_enemyController.health);
+        }
+        else
+        {
+            _playerController = GetComponent<PlayerController>();
+            SetMaxHealth(_playerController.health);
+        }
     }
 
     void Update()
     {
-        SetHealth(_playerController.currentHealth);
+        SetHealth(isEnemy ? _enemyController.currentHealth : _playerController.currentHealth);
     }
 
     public void SetMaxHealth(int health)
