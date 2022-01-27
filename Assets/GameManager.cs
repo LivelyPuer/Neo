@@ -10,8 +10,15 @@ using TurnTheGameOn.Timer;
 public class GameManager : NetworkBehaviour
 {
     private DataManager _dataManager;
+    
+    public List<Timer> timers = new List<Timer>();
+    public EnemyController enemy;
+    [SyncVar] public bool isStop;
+    
+    
     private Timer timer;
     public uint localPlayerID;
+    
     [SyncVar] public int oldCount = 0;
     public int defaultTime = 5;
     public SyncDictionary<uint, bool> playerRightID = new SyncDictionary<uint, bool>();
@@ -21,8 +28,14 @@ public class GameManager : NetworkBehaviour
     // Update is called once per frame
     private void Start()
     {
+        isStop = false;
         _dataManager = FindObjectOfType<DataManager>();
-        timer = FindObjectOfType<Timer>();
+        timer = GetComponent<Timer>();
+        enemy = FindObjectOfType<EnemyController>();
+        foreach (var v in FindObjectsOfType<Timer>())
+        {
+            timers.Add(v);
+        }
     }
 
     public void StartTimer(int seconds)
@@ -40,6 +53,8 @@ public class GameManager : NetworkBehaviour
     [Server]
     private void Update()
     {
+        if (isStop) {return;}
+        allEnd();
         if (FindObjectsOfType<PlayerController>().Length != oldCount)
         {
             oldCount = FindObjectsOfType<PlayerController>().Length;
@@ -48,6 +63,7 @@ public class GameManager : NetworkBehaviour
                 CmdAddPlayer(player.GetComponent<NetworkIdentity>().netId);
             }
         }
+        
     }
 
     [Command(requiresAuthority = false)]
@@ -82,5 +98,37 @@ public class GameManager : NetworkBehaviour
     public bool GetPlayerAnswerDict(uint player)
     {
         return playerRightID[player];
+    }
+
+    [Server]
+    public void allEnd()
+    {
+        if (enemy.isDead)
+        {
+            isStop = true;
+        }
+        else
+        {
+            bool allDead = true;
+            foreach (var player in FindObjectsOfType<PlayerController>())
+            {
+                if (!player.isDead)
+                {
+                    allDead = false;
+                    break;
+                }
+            }
+
+            isStop = allDead;
+        }
+
+        if (isStop)
+        {
+            foreach (var t in timers)
+            {
+                t.StopTimer();
+            }
+        }
+        
     }
 }

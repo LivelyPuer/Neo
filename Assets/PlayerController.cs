@@ -84,8 +84,8 @@ public class PlayerController : NetworkBehaviour
                 {
                     skin.sprite = skins[current].skinDead;
                     isDead = true;    
+                    _uiManager.ShowDead();
                 }
-                
             }
         }
     }
@@ -195,8 +195,12 @@ public class PlayerController : NetworkBehaviour
                         break;
                 }
 
-                _uiManager.timerAnswer.RestartTimer();
+                
             }
+        }
+        if (isServer)
+        {
+            _uiManager.ResetTimer();
         }
     }
 }

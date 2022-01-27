@@ -9,6 +9,7 @@ using UnityEngine;
 
 public class UiManager : MonoBehaviour
 {
+    public TMP_Text spectatorText;
     public Timer timerAnswer;
     public GameObject BasePanel;
     [Header("Simple")] public GameObject SimplePanel;
@@ -24,7 +25,11 @@ public class UiManager : MonoBehaviour
     {
         _gameManager = FindObjectOfType<GameManager>();
     }
-    
+
+    public void ResetTimer()
+    {
+        timerAnswer.RestartTimer();
+    }
 
     public void ShowBase()
     {
@@ -40,6 +45,11 @@ public class UiManager : MonoBehaviour
         {
             player.ShowQuestion();
         }
+    }
+
+    public void ShowDead()
+    {
+        spectatorText.gameObject.SetActive(true);
     }
 
     public void CloseAll()

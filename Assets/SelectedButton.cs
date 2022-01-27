@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 public class SelectedButton : MonoBehaviour
 {
-    public Color firstColor = Color.white;
-    public Color secondColor = Color.yellow;
+    public Sprite firstColor;
+    public Sprite secondColor;
     private Image image;
     void Start()
     {
@@ -16,12 +16,12 @@ public class SelectedButton : MonoBehaviour
 
     public void SetFirstColor()
     {
-        image.color = firstColor;
+        image.sprite = firstColor;
     }
     
     public void SetSecondColor()
     {
-        image.color = Color.yellow;
+        image.sprite = secondColor;
     }
 
 }
