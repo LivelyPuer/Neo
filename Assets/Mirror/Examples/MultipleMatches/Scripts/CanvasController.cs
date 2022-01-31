@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Mirror.Examples.MultipleMatch
@@ -59,7 +60,7 @@ namespace Mirror.Examples.MultipleMatch
         [Header("GUI References")]
         public GameObject matchList;
         public GameObject matchPrefab;
-        public GameObject matchControllerPrefab;
+        [Scene] public string matchControllerPrefab;
         public Button createButton;
         public Button joinButton;
         public GameObject lobbyView;
@@ -449,7 +450,7 @@ namespace Mirror.Examples.MultipleMatch
             matchConnections.Add(newMatchId, new HashSet<NetworkConnection>());
             matchConnections[newMatchId].Add(conn);
             playerMatches.Add(conn, newMatchId);
-            openMatches.Add(newMatchId, new MatchInfo { matchId = newMatchId, maxPlayers = 2, players = 1 });
+            openMatches.Add(newMatchId, new MatchInfo { matchId = newMatchId, maxPlayers = 7, players = 1 });
 
             PlayerInfo playerInfo = playerInfos[conn];
             playerInfo.ready = false;
@@ -495,44 +496,45 @@ namespace Mirror.Examples.MultipleMatch
             Guid matchId;
             if (playerMatches.TryGetValue(conn, out matchId))
             {
-                GameObject matchControllerObject = Instantiate(matchControllerPrefab);
-                matchControllerObject.GetComponent<NetworkMatch>().matchId = matchId;
-                NetworkServer.Spawn(matchControllerObject);
-
-                MatchController matchController = matchControllerObject.GetComponent<MatchController>();
-
-                foreach (NetworkConnection playerConn in matchConnections[matchId])
-                {
-                    playerConn.Send(new ClientMatchMessage { clientMatchOperation = ClientMatchOperation.Started });
-
-                    GameObject player = Instantiate(NetworkManager.singleton.playerPrefab);
-                    player.GetComponent<NetworkMatch>().matchId = matchId;
-                    NetworkServer.AddPlayerForConnection(playerConn, player);
-
-                    if (matchController.player1 == null)
-                    {
-                        matchController.player1 = playerConn.identity;
-                    }
-                    else
-                    {
-                        matchController.player2 = playerConn.identity;
-                    }
-
-                    /* Reset ready state for after the match. */
-                    PlayerInfo playerInfo = playerInfos[playerConn];
-                    playerInfo.ready = false;
-                    playerInfos[playerConn] = playerInfo;
-                }
-
-                matchController.startingPlayer = matchController.player1;
-                matchController.currentPlayer = matchController.player1;
+                SceneManager.LoadScene(matchControllerPrefab);
+                // GameObject matchControllerObject = Instantiate(matchControllerPrefab);
+                // matchControllerObject.GetComponent<NetworkMatch>().matchId = matchId;
+                // NetworkServer.Spawn(matchControllerObject);
+                //
+                // MatchController matchController = matchControllerObject.GetComponent<MatchController>();
+                //
+                // foreach (NetworkConnection playerConn in matchConnections[matchId])
+                // {
+                //     playerConn.Send(new ClientMatchMessage { clientMatchOperation = ClientMatchOperation.Started });
+                //
+                //     GameObject player = Instantiate(NetworkManager.singleton.playerPrefab);
+                //     player.GetComponent<NetworkMatch>().matchId = matchId;
+                //     NetworkServer.AddPlayerForConnection(playerConn, player);
+                //
+                //     if (matchController.player1 == null)
+                //     {
+                //         matchController.player1 = playerConn.identity;
+                //     }
+                //     else
+                //     {
+                //         matchController.player2 = playerConn.identity;
+                //     }
+                //
+                //     /* Reset ready state for after the match. */
+                //     PlayerInfo playerInfo = playerInfos[playerConn];
+                //     playerInfo.ready = false;
+                //     playerInfos[playerConn] = playerInfo;
+                // }
+                //
+                // matchController.startingPlayer = matchController.player1;
+                // matchController.currentPlayer = matchController.player1;
 
                 playerMatches.Remove(conn);
                 openMatches.Remove(matchId);
                 matchConnections.Remove(matchId);
                 SendMatchList();
 
-                OnPlayerDisconnected += matchController.OnPlayerDisconnected;
+                // OnPlayerDisconnected += matchController.OnPlayerDisconnected;
             }
         }
 
